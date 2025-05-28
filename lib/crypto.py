@@ -2,7 +2,7 @@ import secrets
 import string
 from cryptography.fernet import Fernet
 
-# WARNING: In a real-world project, store this key securely, not in plain code!
+# In the real world,I should store this key in a secure location
 KEY = b'5lozFBg4NaghlzjzA4Pzz5Kd6vwegFieGTGmebpS_cQ='
 cipher_suite = Fernet(KEY)
 

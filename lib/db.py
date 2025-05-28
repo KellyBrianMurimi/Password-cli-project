@@ -6,10 +6,10 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 load_dotenv()
 
-# Get the database URL from environment or default to a local SQLite file
+# Getting the database URL 
 db_path = os.getenv("DATABASE_URL", "sqlite:///securecli.db")
 
-# Normalize the path if using SQLite (convert relative to absolute path)
+# Normalizing the path 
 if db_path.startswith("sqlite:///"):
     local_path = db_path.replace("sqlite:///", "")
     abs_path = Path(local_path).resolve()
@@ -19,7 +19,7 @@ else:
 
 print("Using database:", DATABASE_URL)
 
-# Create the engine and session factory
+# Engine and session factory
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 Session = sessionmaker(bind=engine, future=True)
 
