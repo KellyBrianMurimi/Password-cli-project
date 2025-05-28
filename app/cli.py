@@ -1,179 +1,191 @@
-# cli.py
 import argparse
-from datetime import datetime
-from lib.db import Session
-from lib.models.user import User
-from lib.models.account import Account
-from lib.models.password import Password
-from lib.encryption import encrypt_password
+from lib.db import session
+from lib.models import User, Account, Password
+from lib.encryption import encrypt_password, decrypt_password
 
-try:
-    from lib.encryption import decrypt_password
-except ImportError:
-    decrypt_password = lambda val: "[DECRYPTION DISABLED]"
+def create_user(name, email):
+    user = User(name=name, email=email)
+    session.add(user)
+    session.commit()
+    print(f"User '{name}' created.")
 
-def list_accounts(username):
-    session = Session()
-    user = session.query(User).filter_by(username=username).first()
+def list_users():
+    users = session.query(User).all()
+    for user in users:
+        print(f"{user.id}: {user.name} ({user.email})")
+
+def delete_user(name):
+    user = session.query(User).filter_by(name=name).first()
+    if user:
+        session.delete(user)
+        session.commit()
+        print(f"User '{name}' deleted.")
+    else:
+        print("User not found.")
+
+def add_account(user_name, account_name):
+    user = session.query(User).filter_by(name=user_name).first()
     if not user:
-        print(f" User '{username}' not found.")
-        session.close()
-        return
-    print(f" Accounts for user '{username}':")
-    for account in user.accounts:
-        print(f"- {account.name} (ID: {account.id})")
-    session.close()
-
-def add_account(username, account_name):
-    session = Session()
-    user = session.query(User).filter_by(username=username).first()
-    if not user:
-        print(f" User '{username}' not found.")
-        session.close()
+        print("User not found.")
         return
     account = Account(name=account_name, user=user)
     session.add(account)
     session.commit()
-    print(f" Account '{account_name}' added for user '{username}'.")
-    session.close()
+    print(f"Account '{account_name}' added to user '{user_name}'.")
 
-def add_password(username, account_name, password_plain):
-    session = Session()
-    user = session.query(User).filter_by(username=username).first()
+def list_accounts(user_name):
+    user = session.query(User).filter_by(name=user_name).first()
     if not user:
-        print(f" User '{username}' not found.")
-        session.close()
+        print("User not found.")
         return
-    account = session.query(Account).filter_by(name=account_name, user=user).first()
-    if not account:
-        print(f" Account '{account_name}' not found for user '{username}'.")
-        session.close()
-        return
-    encrypted_pw = encrypt_password(password_plain)
-    pw_entry = Password(
-        account=account,
-        user=user,
-        encrypted_value=encrypted_pw,
-    )
-    session.add(pw_entry)
-    session.commit()
-    print(f" Password added for account '{account_name}'.")
-    session.close()
+    for account in user.accounts:
+        print(f"{account.id}: {account.name}")
 
-def get_passwords(username, account_name):
-    session = Session()
-    user = session.query(User).filter_by(username=username).first()
+def delete_account(user_name, account_name):
+    user = session.query(User).filter_by(name=user_name).first()
     if not user:
-        print(f" User '{username}' not found.")
-        session.close()
+        print("User not found.")
         return
-    account = session.query(Account).filter_by(name=account_name, user=user).first()
-    if not account:
-        print(f" Account '{account_name}' not found for user '{username}'.")
-        session.close()
-        return
-    pw_entries = session.query(Password).filter_by(account=account).all()
-    if not pw_entries:
-        print(f" No passwords found for account '{account_name}'.")
-    else:
-        print(f" Passwords for '{account_name}':")
-        for pw in pw_entries:
-            decrypted = decrypt_password(pw.encrypted_value)
-            print(f"- ID {pw.id}, created {pw.created_at}: {decrypted}")
-    session.close()
-
-def create_user(username, email):
-    session = Session()
-    existing = session.query(User).filter_by(username=username).first()
-    if existing:
-        print(f"User '{username}' already exists.")
-    else:
-        new_user = User(username=username, email=email)
-        session.add(new_user)
+    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
+    if account:
+        session.delete(account)
         session.commit()
-        print(f" User '{username}' created.")
-    session.close()
-
-def update_password(password_id, new_password):
-    session = Session()
-    pw_entry = session.query(Password).filter_by(id=password_id).first()
-    if not pw_entry:
-        print(f" Password entry with ID '{password_id}' not found.")
-        session.close()
-        return
-    pw_entry.encrypted_value = encrypt_password(new_password)
-    session.commit()
-    print(f" Password ID {password_id} updated successfully.")
-    session.close()
-
-def delete_password(password_id):
-    session = Session()
-    pw_entry = session.query(Password).filter_by(id=password_id).first()
-    if not pw_entry:
-        print(f" Password entry with ID '{password_id}' not found.")
-        session.close()
-        return
-    session.delete(pw_entry)
-    session.commit()
-    print(f" Password ID {password_id} deleted.")
-    session.close()
-
-def main():
-    parser = argparse.ArgumentParser(description=" Password Manager CLI")
-    subparsers = parser.add_subparsers(dest="command")
-
-    # list-accounts
-    parser_list = subparsers.add_parser("list-accounts")
-    parser_list.add_argument("username")
-
-    # add-account
-    parser_add_acc = subparsers.add_parser("add-account")
-    parser_add_acc.add_argument("username")
-    parser_add_acc.add_argument("account_name")
-
-    # add-password
-    parser_add_pw = subparsers.add_parser("add-password")
-    parser_add_pw.add_argument("username")
-    parser_add_pw.add_argument("account_name")
-    parser_add_pw.add_argument("password")
-
-    # get-passwords
-    parser_get_pw = subparsers.add_parser("get-passwords")
-    parser_get_pw.add_argument("username")
-    parser_get_pw.add_argument("account_name")
-
-    # Create user
-    parser_create_user = subparsers.add_parser("create-user")
-    parser_create_user.add_argument("username", help="New user's username")
-    parser_create_user.add_argument("email", help="New user's email")
-
-    # update-password
-    parser_update = subparsers.add_parser("update-password")
-    parser_update.add_argument("password_id", type=int)
-    parser_update.add_argument("new_password")
-
-    # delete-password
-    parser_delete = subparsers.add_parser("delete-password")
-    parser_delete.add_argument("password_id", type=int)
-
-    args = parser.parse_args()
-
-    if args.command == "list-accounts":
-        list_accounts(args.username)
-    elif args.command == "add-account":
-        add_account(args.username, args.account_name)
-    elif args.command == "add-password":
-        add_password(args.username, args.account_name, args.password)
-    elif args.command == "get-passwords":
-        get_passwords(args.username, args.account_name)
-    elif args.command == "create-user":
-        create_user(args.username, args.email)
-    elif args.command == "update-password":
-        update_password(args.password_id, args.new_password)
-    elif args.command == "delete-password":
-        delete_password(args.password_id)
+        print(f"Account '{account_name}' deleted.")
     else:
-        parser.print_help()
+        print("Account not found.")
 
-if __name__ == "__main__":
-    main()
+def add_password(user_name, account_name, password_text):
+    user = session.query(User).filter_by(name=user_name).first()
+    if not user:
+        print("User not found.")
+        return
+    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
+    if not account:
+        print("Account not found.")
+        return
+    encrypted_pw = encrypt_password(password_text)
+    password = Password(encrypted_password=encrypted_pw, account=account)
+    session.add(password)
+    session.commit()
+    print("Password added successfully.")
+
+def get_passwords(user_name, account_name):
+    user = session.query(User).filter_by(name=user_name).first()
+    if not user:
+        print("User not found.")
+        return
+    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
+    if not account:
+        print("Account not found.")
+        return
+    for pw in account.passwords:
+        decrypted = decrypt_password(pw.encrypted_password)
+        print(f"{pw.id}: {decrypted}")
+
+def delete_password(user_name, account_name, password_id):
+    user = session.query(User).filter_by(name=user_name).first()
+    if not user:
+        print("User not found.")
+        return
+    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
+    if not account:
+        print("Account not found.")
+        return
+    password = session.query(Password).filter_by(id=password_id, account_id=account.id).first()
+    if password:
+        session.delete(password)
+        session.commit()
+        print(f"Password ID {password_id} deleted.")
+    else:
+        print("Password not found.")
+
+def update_password(user_name, account_name, password_id, new_password):
+    user = session.query(User).filter_by(name=user_name).first()
+    if not user:
+        print("User not found.")
+        return
+    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
+    if not account:
+        print("Account not found.")
+        return
+    password = session.query(Password).filter_by(id=password_id, account_id=account.id).first()
+    if password:
+        password.encrypted_password = encrypt_password(new_password)
+        session.commit()
+        print(f"Password ID {password_id} updated.")
+    else:
+        print("Password not found.")
+
+# --------- CLI ARGUMENTS ---------
+
+parser = argparse.ArgumentParser(description="Password Manager CLI")
+subparsers = parser.add_subparsers(dest="command")
+
+# User commands
+user_create = subparsers.add_parser("create-user")
+user_create.add_argument("name")
+user_create.add_argument("email")
+
+user_list = subparsers.add_parser("list-users")
+
+user_delete = subparsers.add_parser("delete-user")
+user_delete.add_argument("name")
+
+# Account commands
+account_add = subparsers.add_parser("add-account")
+account_add.add_argument("user_name")
+account_add.add_argument("account_name")
+
+account_list = subparsers.add_parser("list-accounts")
+account_list.add_argument("user_name")
+
+account_delete = subparsers.add_parser("delete-account")
+account_delete.add_argument("user_name")
+account_delete.add_argument("account_name")
+
+# Password commands
+pw_add = subparsers.add_parser("add-password")
+pw_add.add_argument("user_name")
+pw_add.add_argument("account_name")
+pw_add.add_argument("password")
+
+pw_get = subparsers.add_parser("get-passwords")
+pw_get.add_argument("user_name")
+pw_get.add_argument("account_name")
+
+pw_delete = subparsers.add_parser("delete-password")
+pw_delete.add_argument("user_name")
+pw_delete.add_argument("account_name")
+pw_delete.add_argument("password_id", type=int)
+
+pw_update = subparsers.add_parser("update-password")
+pw_update.add_argument("user_name")
+pw_update.add_argument("account_name")
+pw_update.add_argument("password_id", type=int)
+pw_update.add_argument("new_password")
+
+# Execute command
+args = parser.parse_args()
+
+if args.command == "create-user":
+    create_user(args.name, args.email)
+elif args.command == "list-users":
+    list_users()
+elif args.command == "delete-user":
+    delete_user(args.name)
+elif args.command == "add-account":
+    add_account(args.user_name, args.account_name)
+elif args.command == "list-accounts":
+    list_accounts(args.user_name)
+elif args.command == "delete-account":
+    delete_account(args.user_name, args.account_name)
+elif args.command == "add-password":
+    add_password(args.user_name, args.account_name, args.password)
+elif args.command == "get-passwords":
+    get_passwords(args.user_name, args.account_name)
+elif args.command == "delete-password":
+    delete_password(args.user_name, args.account_name, args.password_id)
+elif args.command == "update-password":
+    update_password(args.user_name, args.account_name, args.password_id, args.new_password)
+else:
+    parser.print_help()
