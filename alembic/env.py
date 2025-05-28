@@ -5,6 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -20,12 +21,16 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 import sys
 import os
+
+# Add path to import from lib and models
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
 
 from db import Base
-from models import user, account, password  # import your model files to register them
+import models  
 
 target_metadata = Base.metadata
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -1,7 +1,6 @@
-# models/account.py
+# lib/models/account.py
 
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
 from lib.db import Base
 
 class Account(Base):
@@ -9,6 +8,5 @@ class Account(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'))
 
-    user = relationship("User", backref="accounts")
