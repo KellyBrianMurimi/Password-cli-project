@@ -1,8 +1,8 @@
-"""Fix Base and recreate tables
+"""Cleaned up Password model
 
-Revision ID: d9a8e1527645
-Revises: 1d26b288d142
-Create Date: 2025-05-28 14:55:26.212223
+Revision ID: cde3c7b3194a
+Revises: 
+Create Date: 2025-05-28 21:17:44.813983
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'd9a8e1527645'
-down_revision: Union[str, None] = '1d26b288d142'
+revision: str = 'cde3c7b3194a'
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -29,18 +29,17 @@ def upgrade() -> None:
     )
     op.create_table('accounts',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('account_name', sa.String(), nullable=False),
+    sa.Column('account_type', sa.String(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('passwords',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('encrypted_value', sa.String(), nullable=False),
     sa.Column('account_id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('encrypted_password', sa.String(), nullable=False),
     sa.ForeignKeyConstraint(['account_id'], ['accounts.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

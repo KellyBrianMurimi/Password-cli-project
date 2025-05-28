@@ -1,191 +1,186 @@
-import argparse
-from lib.db import session
+import click
+from lib.db import Session
 from lib.models import User, Account, Password
-from lib.encryption import encrypt_password, decrypt_password
+from lib.crypto import encrypt_password, decrypt_password, generate_strong_password  # imported here
 
-def create_user(name, email):
-    user = User(name=name, email=email)
-    session.add(user)
-    session.commit()
-    print(f"User '{name}' created.")
+@click.group()
+@click.option('-m', '--message', help='Optional operation message')
+@click.pass_context
+def cli(ctx, message):
+    """Main CLI group with optional message for commands."""
+    ctx.ensure_object(dict)
+    ctx.obj['message'] = message
+    click.echo(f"Using database: {Session.kw.get('bind').url}")
 
-def list_users():
-    users = session.query(User).all()
-    for user in users:
-        print(f"{user.id}: {user.name} ({user.email})")
-
-def delete_user(name):
-    user = session.query(User).filter_by(name=name).first()
-    if user:
-        session.delete(user)
+@cli.command()
+@click.argument('username')
+@click.argument('email')
+@click.pass_context
+def create_user(ctx, username, email):
+    """Create a new user."""
+    with Session() as session:
+        user = User(username=username, email=email)
+        session.add(user)
         session.commit()
-        print(f"User '{name}' deleted.")
-    else:
-        print("User not found.")
+        click.echo(f"User '{username}' created.")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-def add_account(user_name, account_name):
-    user = session.query(User).filter_by(name=user_name).first()
-    if not user:
-        print("User not found.")
-        return
-    account = Account(name=account_name, user=user)
-    session.add(account)
-    session.commit()
-    print(f"Account '{account_name}' added to user '{user_name}'.")
+@cli.command()
+@click.pass_context
+def list_users(ctx):
+    """List all users."""
+    with Session() as session:
+        users = session.query(User).all()
+        if not users:
+            click.echo("No users found.")
+            return
+        click.echo("Users:")
+        for u in users:
+            click.echo(f"- ID: {u.id} | {u.username} ({u.email})")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-def list_accounts(user_name):
-    user = session.query(User).filter_by(name=user_name).first()
-    if not user:
-        print("User not found.")
-        return
-    for account in user.accounts:
-        print(f"{account.id}: {account.name}")
-
-def delete_account(user_name, account_name):
-    user = session.query(User).filter_by(name=user_name).first()
-    if not user:
-        print("User not found.")
-        return
-    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
-    if account:
-        session.delete(account)
+@cli.command()
+@click.argument('user_id', type=int)
+@click.argument('site')
+@click.argument('username')
+@click.pass_context
+def add_account(ctx, user_id, site, username):
+    """Add an account to a user."""
+    with Session() as session:
+        user = session.get(User, user_id)
+        if not user:
+            click.echo(f"Error: User with ID {user_id} does not exist.")
+            return
+        account = Account(site=site, username=username, user=user)
+        session.add(account)
         session.commit()
-        print(f"Account '{account_name}' deleted.")
-    else:
-        print("Account not found.")
+        click.echo(f"Account for site '{site}' added for user '{user.username}'.")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-def add_password(user_name, account_name, password_text):
-    user = session.query(User).filter_by(name=user_name).first()
-    if not user:
-        print("User not found.")
-        return
-    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
-    if not account:
-        print("Account not found.")
-        return
-    encrypted_pw = encrypt_password(password_text)
-    password = Password(encrypted_password=encrypted_pw, account=account)
-    session.add(password)
-    session.commit()
-    print("Password added successfully.")
+@cli.command()
+@click.argument('user_id', type=int)
+@click.pass_context
+def list_accounts(ctx, user_id):
+    """List all accounts for a user."""
+    with Session() as session:
+        user = session.get(User, user_id)
+        if not user:
+            click.echo(f"Error: User with ID {user_id} not found.")
+            return
+        accounts = session.query(Account).filter_by(user_id=user_id).all()
+        if not accounts:
+            click.echo(f"No accounts found for user '{user.username}'.")
+            return
+        click.echo(f"Accounts for user '{user.username}':")
+        for a in accounts:
+            click.echo(f"- ID: {a.id} | Site: {a.site} | Username: {a.username}")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-def get_passwords(user_name, account_name):
-    user = session.query(User).filter_by(name=user_name).first()
-    if not user:
-        print("User not found.")
-        return
-    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
-    if not account:
-        print("Account not found.")
-        return
-    for pw in account.passwords:
-        decrypted = decrypt_password(pw.encrypted_password)
-        print(f"{pw.id}: {decrypted}")
+@cli.command()
+@click.argument('account_id', type=int)
+@click.argument('password_text')
+@click.pass_context
+def add_password(ctx, account_id, password_text):
+    """Add a password (encrypted) to an account."""
+    with Session() as session:
+        account = session.get(Account, account_id)
+        if not account:
+            click.echo(f"Error: Account with ID {account_id} not found.")
+            return
+        encrypted = encrypt_password(password_text)
+        password = Password(account_id=account_id, encrypted_password=encrypted)
+        session.add(password)
+        session.commit()
+        click.echo(f"Password added for account ID {account_id}.")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-def delete_password(user_name, account_name, password_id):
-    user = session.query(User).filter_by(name=user_name).first()
-    if not user:
-        print("User not found.")
-        return
-    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
-    if not account:
-        print("Account not found.")
-        return
-    password = session.query(Password).filter_by(id=password_id, account_id=account.id).first()
-    if password:
+@cli.command()
+@click.argument('account_id', type=int)
+@click.pass_context
+def generate_and_add_password(ctx, account_id):
+    """Generate a strong password, encrypt it, and add it to an account."""
+    with Session() as session:
+        account = session.get(Account, account_id)
+        if not account:
+            click.echo(f"Error: Account with ID {account_id} not found.")
+            return
+        pwd = generate_strong_password()
+        encrypted = encrypt_password(pwd)
+        password = Password(account_id=account_id, encrypted_password=encrypted)
+        session.add(password)
+        session.commit()
+        click.echo(f"Generated and added password for account ID {account_id}:")
+        click.echo(f"{pwd}  <-- Save this password securely!")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
+
+@cli.command()
+@click.argument('account_id', type=int)
+@click.pass_context
+def get_password(ctx, account_id):
+    """Retrieve and decrypt a password for an account."""
+    with Session() as session:
+        password = session.query(Password).filter_by(account_id=account_id).first()
+        if not password:
+            click.echo(f"No password found for account ID {account_id}.")
+            return
+        decrypted = decrypt_password(password.encrypted_password)
+        click.echo(f"Decrypted password for account ID {account_id}: {decrypted}")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
+
+@cli.command()
+@click.argument('password_id', type=int)
+@click.pass_context
+def delete_password(ctx, password_id):
+    """Delete a password by ID."""
+    with Session() as session:
+        password = session.get(Password, password_id)
+        if not password:
+            click.echo(f"Password with ID {password_id} not found.")
+            return
         session.delete(password)
         session.commit()
-        print(f"Password ID {password_id} deleted.")
-    else:
-        print("Password not found.")
+        click.echo(f"Password ID {password_id} deleted.")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-def update_password(user_name, account_name, password_id, new_password):
-    user = session.query(User).filter_by(name=user_name).first()
-    if not user:
-        print("User not found.")
-        return
-    account = session.query(Account).filter_by(name=account_name, user_id=user.id).first()
-    if not account:
-        print("Account not found.")
-        return
-    password = session.query(Password).filter_by(id=password_id, account_id=account.id).first()
-    if password:
-        password.encrypted_password = encrypt_password(new_password)
+@cli.command()
+@click.argument('account_id', type=int)
+@click.pass_context
+def delete_account(ctx, account_id):
+    """Delete an account by ID."""
+    with Session() as session:
+        account = session.get(Account, account_id)
+        if not account:
+            click.echo(f"Account with ID {account_id} not found.")
+            return
+        session.delete(account)
         session.commit()
-        print(f"Password ID {password_id} updated.")
-    else:
-        print("Password not found.")
+        click.echo(f"Account ID {account_id} deleted.")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-# --------- CLI ARGUMENTS ---------
+@cli.command()
+@click.argument('user_id', type=int)
+@click.pass_context
+def delete_user(ctx, user_id):
+    """Delete a user by ID."""
+    with Session() as session:
+        user = session.get(User, user_id)
+        if not user:
+            click.echo(f"User with ID {user_id} not found.")
+            return
+        session.delete(user)
+        session.commit()
+        click.echo(f"User ID {user_id} deleted.")
+        if ctx.obj['message']:
+            click.echo(f"Message: {ctx.obj['message']}")
 
-parser = argparse.ArgumentParser(description="Password Manager CLI")
-subparsers = parser.add_subparsers(dest="command")
-
-# User commands
-user_create = subparsers.add_parser("create-user")
-user_create.add_argument("name")
-user_create.add_argument("email")
-
-user_list = subparsers.add_parser("list-users")
-
-user_delete = subparsers.add_parser("delete-user")
-user_delete.add_argument("name")
-
-# Account commands
-account_add = subparsers.add_parser("add-account")
-account_add.add_argument("user_name")
-account_add.add_argument("account_name")
-
-account_list = subparsers.add_parser("list-accounts")
-account_list.add_argument("user_name")
-
-account_delete = subparsers.add_parser("delete-account")
-account_delete.add_argument("user_name")
-account_delete.add_argument("account_name")
-
-# Password commands
-pw_add = subparsers.add_parser("add-password")
-pw_add.add_argument("user_name")
-pw_add.add_argument("account_name")
-pw_add.add_argument("password")
-
-pw_get = subparsers.add_parser("get-passwords")
-pw_get.add_argument("user_name")
-pw_get.add_argument("account_name")
-
-pw_delete = subparsers.add_parser("delete-password")
-pw_delete.add_argument("user_name")
-pw_delete.add_argument("account_name")
-pw_delete.add_argument("password_id", type=int)
-
-pw_update = subparsers.add_parser("update-password")
-pw_update.add_argument("user_name")
-pw_update.add_argument("account_name")
-pw_update.add_argument("password_id", type=int)
-pw_update.add_argument("new_password")
-
-# Execute command
-args = parser.parse_args()
-
-if args.command == "create-user":
-    create_user(args.name, args.email)
-elif args.command == "list-users":
-    list_users()
-elif args.command == "delete-user":
-    delete_user(args.name)
-elif args.command == "add-account":
-    add_account(args.user_name, args.account_name)
-elif args.command == "list-accounts":
-    list_accounts(args.user_name)
-elif args.command == "delete-account":
-    delete_account(args.user_name, args.account_name)
-elif args.command == "add-password":
-    add_password(args.user_name, args.account_name, args.password)
-elif args.command == "get-passwords":
-    get_passwords(args.user_name, args.account_name)
-elif args.command == "delete-password":
-    delete_password(args.user_name, args.account_name, args.password_id)
-elif args.command == "update-password":
-    update_password(args.user_name, args.account_name, args.password_id, args.new_password)
-else:
-    parser.print_help()
+if __name__ == '__main__':
+    cli()

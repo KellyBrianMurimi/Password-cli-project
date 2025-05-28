@@ -4,7 +4,6 @@ from lib.models.user import User
 from lib.models.account import Account
 from lib.models.password import Password
 from lib.encryption import encrypt_password
-from datetime import datetime
 
 def seed():
     session = Session()
@@ -18,27 +17,32 @@ def seed():
     kelly = User(username="kelly", email="kelly@example.com")
     testuser = User(username="testuser", email="testuser@example.com")
 
-    # Accounts
-    github_kelly = Account(name="GitHub", user=kelly)
-    gmail_kelly = Account(name="Gmail", user=kelly)
-    github_test = Account(name="Gmail", user=testuser)
+    session.add_all([kelly, testuser])
+    session.commit()  # commit to get user ids
 
-    # Passwords
+    # Accounts - fix: use user_id, account_name, account_type
+    github_kelly = Account(user_id=kelly.id, account_name="GitHub", account_type="social")
+    gmail_kelly = Account(user_id=kelly.id, account_name="Gmail", account_type="email")
+    github_test = Account(user_id=testuser.id, account_name="GitHub", account_type="social")
+
+    session.add_all([github_kelly, gmail_kelly, github_test])
+    session.commit()  # commit to get account ids
+
+ # Passwords
     password1 = Password(
-        account=github_kelly, 
-        user=kelly, 
-        encrypted_value=encrypt_password("kellyGitHub123!"),
-        )
+    account_id=github_kelly.id,
+    encrypted_password=encrypt_password("kellyGitHub123!")
+    )
     password2 = Password(
-        account=gmail_kelly, 
-        user=kelly, encrypted_value=encrypt_password("kellyGmail456!"), 
-        )
+    account_id=gmail_kelly.id,
+    encrypted_password=encrypt_password("kellyGmail456!")
+   )
     password3 = Password(
-        account=github_test, 
-        user=testuser, encrypted_value=encrypt_password("testGitHub789!"), 
-        )
+    account_id=github_test.id,
+    encrypted_password=encrypt_password("testGitHub789!")
+   )
 
-    session.add_all([kelly, testuser, github_kelly, gmail_kelly, github_test, password1, password2, password3])
+    session.add_all([password1, password2, password3])
     session.commit()
     session.close()
     print("✅ Database seeded with test users, accounts, and passwords.")
