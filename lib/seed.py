@@ -1,8 +1,8 @@
 # lib/seed.py
-from db import Session
-from models.user import User
-from models.account import Account
-from models.password import Password
+from lib.db import Session
+from lib.models.user import User
+from lib.models.account import Account
+from lib.models.password import Password
 from lib.encryption import encrypt_password
 
 def seed():
@@ -16,7 +16,8 @@ def seed():
     
     # Create password (encrypted)
     encrypted_pw = encrypt_password("MyStrongPassword123!")
-    password1 = Password(account=account1, encrypted_password=encrypted_pw)
+    password1 = Password(account=account1, user=user1, encrypted_value=encrypted_pw)
+
 
     session.add_all([user1, account1, password1])
     session.commit()

@@ -1,12 +1,15 @@
 # lib/models/account.py
 
 from sqlalchemy import Column, Integer, String, ForeignKey
-from lib.db import Base
+from sqlalchemy.orm import relationship
+from .base import Base
 
 class Account(Base):
     __tablename__ = 'accounts'
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
+    user = relationship("User", back_populates="accounts")
+    passwords = relationship("Password", back_populates="account")

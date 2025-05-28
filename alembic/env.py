@@ -23,11 +23,14 @@ import sys
 import os
 
 # Add path to import from lib and models
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
+lib_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib'))
+models_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models'))
+if lib_path not in sys.path:
+    sys.path.insert(0, lib_path)
+if models_path not in sys.path:
+    sys.path.insert(0, models_path)
 
-from db import Base
-import models  
+from lib.models import Base, User, Account, Password
 
 target_metadata = Base.metadata
 
