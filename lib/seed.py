@@ -10,7 +10,8 @@ def seed():
     session = Session()
 
     # Create user
-    user1 = User(username="testuser", email="testuser@example.com")
+    user1 = User(username="kelly", email="kelly@example.com")
+
     
     # Create account for that user
     account1 = Account(name="GitHub", user=user1)
