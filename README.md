@@ -35,145 +35,151 @@ Password-cli-project/
 ├── securecli.db                 # Local SQLite database
 ├── README.md                    # 📘 Project documentation
 
-## Setup instructions
+## Setup Instructions
+Remove Existing Git Configuration (if using a template)
+rm -rf .git .github .canvas
+This removes old Git metadata and course-specific files you don’t need.
 
--Removing Existing Git Configuration
+## Create Your Own Git Repository
+Rename your directory:
+cd ..
+mv python-p3-cli-project-template <your-project-name>
+cd <your-project-name>
+Initialize a new git repo and commit:
 
-If you're using this template, start off by removing the existing metadata for
-Github and Canvas. Run the following command to carry this out:
+git add --all
+git commit -m 'initial commit'
 
-```console
-$ rm -rf .git .github .canvas
-```
+Create a new repo on GitHub and link it:
 
-The `rm` command removes files from your computer's memory. The `-r` flag tells
-the console to remove _recursively_, which allows the command to remove
-directories and the files within them. `-f` removes them permanently.
+git remote add origin <github-repo-url>
+git push -u origin main
 
-`.git` contains this directory's configuration to track changes and push to
-Github (you want to track and push _your own_ changes instead), and `.github`
-and `.canvas` contain the metadata to create a Canvas page from your Git repo.
-You don't have the permissions to edit our Canvas course, so it's not worth
-keeping them around.
+Install Dependencies Using Pipenv
+pipenv install sqlalchemy alembic click cryptography
+pipenv shell
+Add any other needed libraries as your project grows.
 
--Creating Your Own Git Repo
+## Database Setup and Alembic Migrations
+Initialize Alembic (if not already done):
 
-First things first- rename this directory! Once you have an idea for a name,
-move one level up with `cd ..` and run `mv python-p3-cli-project-template
-<new-directory-name>` to change its name.
+alembic init migrations
+Update your alembic.ini to point to your SQLite DB.
 
-> **Note: `mv` actually stands for "move", but your computer interprets this
-> rename as a move from a directory with the old name to a directory with
-> a new name.**
+In migrations/env.py, replace the metadata line with:
 
-`cd` back into your new directory and run `git init` to create a local git
-repository. Add all of your local files to version control with `git add --all`,
-then commit them with `git commit -m'initial commit'`. (You can change the
-message here- this one is just a common choice.)
-
-Navigate to [GitHub](https://github.com). In the upper-right corner of the page,
-click on the "+" dropdown menu, then select "New repository". Enter the name of
-your local repo, choose whether you would like it to be public or private, make
-sure "Initialize this repository with a README" is unchecked (you already have
-one), then click "Create repository".
-
-Head back to the command line and enter `git remote add <project name> <github
-url>`. This will map the remote repository to your local repository. Finally,
-push your first commit with `git push -u origin main`.
-
-Your project is now version-controlled locally and online. This will allow you
-to create different versions of your project and pick up your work on a
-different machine if the need arises.
-
--Generating Your Pipenv
-
-You might have noticed in the file structure- there's already a Pipfile! That
-being said, we haven't put much in there- just Python version 3.8 and ipdb.
-
-Install any dependencies you know you'll need for your project, like SQLAlchemy
-and Alembic, before you begin. You can do this straight from the command line:
-
-```console
-$ pipenv install sqlalchemy alembic
-```
-
-From here, you should run your second commit:
-
-```console
-$ git add Pipfile Pipfile.lock
-$ git commit -m'add sqlalchemy and alembic to pipenv'
-$ git push
-```
-
-Now that your environment is set up, run `pipenv shell` to enter it.
-
-## Generating Your Database
-
-Once you're in your environment, you can start development wherever you'd like.
-We think it's easiest to start with setting up your database.
-
-`cd` into the `lib/db` directory, then run `alembic init migrations` to set up
-Alembic. Modify line 58 in `alembic.ini` to point to the database you intend to
-create, then replace line 21 in `migrations/env.py` with the following:
-
-```py
-from models import Base
+from lib.models.base import Base
 target_metadata = Base.metadata
-```
 
-We haven't created our `Base` or any models just yet, but we know where they're
-going to be. Navigate to `models.py` and start creating those models. Remember
-to regularly run `alembic revision --autogenerate -m'<descriptive message>'` and
-`alembic upgrade head` to track your modifications to the database and create
-checkpoints in case you ever need to roll those modifications back.
+## Create and apply migrations as you build models:
 
-If you want to seed your database, now would be a great time to write out your
-`seed.py` script and run it to generate some test data.
+alembic revision --autogenerate -m "create users and accounts"
+alembic upgrade head
 
-## Testing from project root
-Run "python -m app.cli" in the terminal.
+Seed the database with:
+python seed.py
 
--You should now be able to run CLI commands.
+## Running the CLI App
+From the root project folder, enter your Pipenv shell (if not already):
 
-## Running the commands
+pipenv shell
+
+Run the CLI with:
+python -m app.cli [COMMAND] [ARGS]
+
+Available Commands & Usage
+Note: To check the commands available,run "python -m app.cli --help"
 
 1. Create a new user
 python -m app.cli create-user alice alice@example.com
 Expected output:
 User 'alice' created.
 
-🔹 2. List all users
+2. List all users
 python -m app.cli list-users
-Expected:
+Expected output:
 Users:
 - ID: 3 | alice (alice@example.com)
-- ID: 5 | Victor (Victor@example.com)
+- ID: 5 | victor (victor@example.com)
 
-🔹 3. Generate and add a strong password (for account ID 3)
-python -m app.cli generate-and-add-password 3
-Expected:
-Generated and added password for account ID 3:
+3. List accounts for a user by user ID
+python -m app.cli list-accounts 3
+Expected output:
+Accounts for user ID 3:
+- Account ID: 7 | Example Account
+- Account ID: 8 | Another Account
 
-🔹 4. Retrieve the password (account ID 3)
-python -m app.cli get-password 3
-Expected:
+4. Add a password to an account (prompts securely)
+python -m app.cli add-password 7
+You will be prompted securely to enter a password or leave blank for auto-generation.
 
-Decrypted password for account ID 3: mySecret123!
+5. Update a password for an account (prompts securely)
+python -m app.cli update-password 7
+You will be prompted securely to enter a new password or leave blank for auto-generation.
 
-🔹 5. Delete the account (ID 3)
+6. Get decrypted password for an account
+python -m app.cli get-password 7
+Expected output:
+Decrypted password for account ID 7: mySecret123!
 
-python -m app.cli delete-account 3
+7. Delete an account by account ID
+python -m app.cli delete-account 7
 
-🔹 6. Delete the user (ID 3)
-
+8. Delete a user by user ID (and their related accounts)
 python -m app.cli delete-user 3
 
+9. Generate and add a strong password to an account (auto-generated/manually set)
+python -m app.cli generate-password 7
 
-## To delete all users, accounts and passwords
+10. Debug: Delete all users, accounts, and passwords (clear the database)
 
-Run "python lib/debug.py"
-
+python lib/debug.py
 Expected:
 All users, accounts, and passwords have been deleted.
 
--RE-seed the data after deleting to be able to now create new users.
+## Technologies Used
+Python3
+
+SQLAlchemy — ORM for database interaction
+
+Alembic — Database migrations management
+
+Click — CLI commands and argument parsing
+
+Cryptography (Fernet) — Encryption/decryption of passwords
+
+SQLite — Local lightweight database
+
+## Project Relationship Structure
+
+User 1 ────< owns >──── * Account 1 ────< has >──── 1 Password
+A User can have multiple Accounts.
+
+-Each Account has one Password (encrypted in the database).
+
+-Passwords are securely encrypted/decrypted via Fernet symmetric encryption.
+
+## Resources used:
+Click (CLI library)
+https://click.palletsprojects.com/en/latest/
+
+SQLAlchemy ORM
+https://docs.sqlalchemy.org/en/14/orm/
+
+Alembic Migrations
+https://alembic.sqlalchemy.org/en/latest/
+
+Cryptography — Fernet symmetric encryption
+https://cryptography.io/en/latest/fernet/
+
+argparse (alternative CLI library)
+https://docs.python.org/3/library/argparse.html
+
+## License 
+Copyright <2025> <Kelly Brian>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
