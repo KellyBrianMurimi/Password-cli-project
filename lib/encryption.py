@@ -4,7 +4,7 @@ import secrets
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 
-# Load environment variables from .env file
+# Loading environment variables from .env file
 load_dotenv()
 
 FERNET_KEY = os.getenv("FERNET_KEY")

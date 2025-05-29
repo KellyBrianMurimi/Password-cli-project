@@ -11,7 +11,6 @@ from lib.models.password import Password
 session = Session()
 
 try:
-    # Delete in this order to respect foreign key constraints
     session.query(Password).delete()
     session.query(Account).delete()
     session.query(User).delete()
