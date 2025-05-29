@@ -9,9 +9,11 @@ class User(Base):
     username = Column(String, nullable=False, unique=True)
     email = Column(String, nullable=False)
 
+    # One user can have many accounts; deleting a user deletes accounts
     accounts = relationship("Account", back_populates="user", cascade="all, delete-orphan")
 
-    def __init__(self, username, email):
+    def __init__(self, *, username: str, email: str):
+        """Create a new User."""
         self.username = username
         self.email = email
 

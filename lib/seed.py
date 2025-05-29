@@ -7,45 +7,33 @@ from lib.encryption import encrypt_password
 
 def seed():
     session = Session()
+    print(f"Using database: {session.bind.url}")
 
-    # Clear existing data
+    # Clear existing data (optional, but helpful for fresh seed)
     session.query(Password).delete()
     session.query(Account).delete()
     session.query(User).delete()
-
-    # Users
-    kelly = User(username="kelly", email="kelly@example.com")
-    testuser = User(username="testuser", email="testuser@example.com")
-
-    session.add_all([kelly, testuser])
-    session.commit() 
-
-    # Accounts - fix: use user_id, account_name, account_type
-    github_kelly = Account(user_id=kelly.id, account_name="GitHub", account_type="social")
-    gmail_kelly = Account(user_id=kelly.id, account_name="Gmail", account_type="email")
-    github_test = Account(user_id=testuser.id, account_name="GitHub", account_type="social")
-
-    session.add_all([github_kelly, gmail_kelly, github_test])
     session.commit()
 
- # Passwords
-    password1 = Password(
-    account_id=github_kelly.id,
-    encrypted_password=encrypt_password("kellyGitHub123!")
-    )
-    password2 = Password(
-    account_id=gmail_kelly.id,
-    encrypted_password=encrypt_password("kellyGmail456!")
-   )
-    password3 = Password(
-    account_id=github_test.id,
-    encrypted_password=encrypt_password("testGitHub789!")
-   )
-
-    session.add_all([password1, password2, password3])
+    # Create Users
+    kelly = User(username="kellybrian", email="kellybrianmurimi@gmail.com")
+    session.add(kelly)
     session.commit()
+
+    # Create Accounts linked to User (pass user instance, per your Account __init__)
+    github_kelly = Account(site="GitHub", username="kellybrianmurimi", user=kelly)
+    twitter_kelly = Account(site="Twitter", username="kellymurimi", user=kelly)
+    session.add_all([github_kelly, twitter_kelly])
+    session.commit()
+
+    # Create Passwords with encrypted password strings
+    pw_github = Password(encrypted_password=encrypt_password("my_real_github_password"), account=github_kelly)
+    pw_twitter = Password(encrypted_password=encrypt_password("my_real_twitter_password"), account=twitter_kelly)
+    session.add_all([pw_github, pw_twitter])
+    session.commit()
+
+    print("Seed data created successfully!")
     session.close()
-    print("✅ Database seeded with test users, accounts, and passwords.")
 
 if __name__ == "__main__":
     seed()

@@ -1,46 +1,43 @@
-# Phase 3 CLI Project Template
+# 🔐 CLI Password Manager
 
-## Learning Goals
+A secure, lightweight command-line password manager built with Python, SQLAlchemy, Alembic, and Click. Easily manage users, encrypted accounts, and generate strong passwords right from your terminal.
 
-- Discuss the basic directory structure of a CLI.
-- Outline the first steps in building a CLI.
+## Project structure
+Password-cli-project/
+│
+├── alembic/                      # Alembic migration system
+│   ├── versions/                 # Auto-generated migration scripts
+│   └── env.py                    # Alembic environment configuration
+│
+├── app/
+│   ├── __init__.py              # App initialization
+│   └── cli.py                   # Main CLI commands using Click
+│
+├── lib/                         # Core application logic
+│   ├── db.py                    # SQLAlchemy DB session setup
+│   ├── debug.py                 # Script for interactive testing/debugging
+│   ├── encryption.py            # Fernet encryption and password generation
+│   └── models/                  # ORM model definitions
+│       ├── __init__.py
+│       ├── base.py              # SQLAlchemy declarative base
+│       ├── account.py           # Account model
+│       ├── user.py              # User model
+│       └── password.py          # Password model
+│
+├── helpers.py                   # Utility/helper functions (if applicable)
+├── seed.py                      # Seed script for test/demo data
+│
+├── .env                         # Environment variables (keep secret)
+├── .schema                      # Optional schema plan or metadata
+├── alembic.ini                  # Alembic configuration file
+├── Pipfile                      # Project dependencies
+├── Pipfile.lock                 # Locked dependencies
+├── securecli.db                 # Local SQLite database
+├── README.md                    # 📘 Project documentation
 
-***
+## Setup instructions
 
-## Introduction
-
-You now have a basic idea of what constitutes a CLI, but you (understandably!)
-likely don't have the best idea of where to start. Fork and clone this lesson
-for a template for your CLI. Take a look at the directory structure before we
-begin:
-
-```console
-.
-├── Pipfile
-├── Pipfile.lock
-├── README.md
-└── lib
-    ├── cli.py
-    ├── db
-    │   ├── models.py
-    │   └── seed.py
-    ├── debug.py
-    └── helpers.py
-```
-
-> **Note: You may already know some or all of the material covered in this
-> lesson. We hope that having it all in one place will help you in designing
-> and developing your project, regardless of where you're starting off.**
-
-***
-
-## Where Do I Start?
-
-This project will likely be one of the biggest projects you've undertaken so
-far. Your first task should be creating a Git repository to keep track of your
-work and roll back any undesired changes.
-
-### Removing Existing Git Configuration
+-Removing Existing Git Configuration
 
 If you're using this template, start off by removing the existing metadata for
 Github and Canvas. Run the following command to carry this out:
@@ -59,7 +56,7 @@ and `.canvas` contain the metadata to create a Canvas page from your Git repo.
 You don't have the permissions to edit our Canvas course, so it's not worth
 keeping them around.
 
-### Creating Your Own Git Repo
+-Creating Your Own Git Repo
 
 First things first- rename this directory! Once you have an idea for a name,
 move one level up with `cd ..` and run `mv python-p3-cli-project-template
@@ -88,9 +85,7 @@ Your project is now version-controlled locally and online. This will allow you
 to create different versions of your project and pick up your work on a
 different machine if the need arises.
 
-***
-
-## Generating Your Pipenv
+-Generating Your Pipenv
 
 You might have noticed in the file structure- there's already a Pipfile! That
 being said, we haven't put much in there- just Python version 3.8 and ipdb.
@@ -111,8 +106,6 @@ $ git push
 ```
 
 Now that your environment is set up, run `pipenv shell` to enter it.
-
-***
 
 ## Generating Your Database
 
@@ -135,105 +128,52 @@ to regularly run `alembic revision --autogenerate -m'<descriptive message>'` and
 checkpoints in case you ever need to roll those modifications back.
 
 If you want to seed your database, now would be a great time to write out your
-`seed.py` script and run it to generate some test data. You may want to use
-Pipenv to install Faker to save you some time.
+`seed.py` script and run it to generate some test data.
 
-***
+## Testing from project root
+Run "python -m app.cli" in the terminal.
 
-## Generating Your CLI
+-You should now be able to run CLI commands.
 
-A CLI is, simply put, an interactive script. You can run it with `python cli.py`
-or include the shebang and make it executable with `chmod +x`. It will ask for
-input, do some work, and accomplish some sort of task by the end.
+## Running the commands
 
-Past that, CLIs can be whatever you'd like. An inventory navigator? A checkout
-station for a restaurant? A choose-your-adventure video game? Absolutely!
+1. Create a new user
+python -m app.cli create-user alice alice@example.com
+Expected output:
+User 'alice' created.
 
-Here's what all of these things have in common (if done well): a number of
-`import` statements (usually _a lot_ of import statements), an `if __name__ ==
-"__main__"` block, and a number of function calls inside of that block. These
-functions should be kept in other modules (ideally not _just_ `helpers.py`)
+🔹 2. List all users
+python -m app.cli list-users
+Expected:
+Users:
+- ID: 3 | alice (alice@example.com)
+- ID: 5 | Victor (Victor@example.com)
 
-There will likely be some `print()` statements in your CLI script to let the
-user know what's going on, but most of these can be placed in functions in
-other modules that are grouped with others that carry out similar tasks. You'll
-see some variable definitions, object initializations, and control flow
-operators (especially `if/else` blocks and `while` loops) as well. When your
-project is done, your `cli.py` file might look like this:
+🔹 3. Generate and add a strong password (for account ID 3)
+python -m app.cli generate-and-add-password 3
+Expected:
+Generated and added password for account ID 3:
 
-```py
-from helpers import (
-    function_1, function_2,
-    function_3, function_4,
-    function_5, function_6,
-    function_7, function_8,
-    function_9, function_10
-)
+🔹 4. Retrieve the password (account ID 3)
+python -m app.cli get-password 3
+Expected:
 
-if __name__ == '__main__':
-    print('Welcome to my CLI!')
-    function_1()
-    x = 0
-    while not x:
-        x = function_2(x)
-    if x < 0:
-        y = function_3(x)
-    else:
-        y = function_4(x)
-    z = function_5(y)
-    z = function_6(z)
-    z = function_7(z)
-    z = function_8(z)
-    function_9(z)
-    function_10(x, y, z)
-    print('Thanks for using my CLI')
+Decrypted password for account ID 3: mySecret123!
 
-```
+🔹 5. Delete the account (ID 3)
 
-***
+python -m app.cli delete-account 3
 
-## Updating Your README.md
+🔹 6. Delete the user (ID 3)
 
-`README.md` is a Markdown file that describes your project. These files can be
-used in many different ways- you may have noticed that we use them to generate
-entire Canvas lessons- but they're most commonly used as homepages for online
-Git repositories. **When you develop something that you want other people to
-use, you need to have a README.**
+python -m app.cli delete-user 3
 
-Markdown is not a language that we cover in Flatiron's Software Engineering
-curriculum, but it's not a particularly difficult language to learn (if you've
-ever left a comment on Reddit, you might already know the basics). Refer to the
-cheat sheet in this lesson's resources for a basic guide to Markdown.
 
-### What Goes into a README?
+## To delete all users, accounts and passwords
 
-This README should serve as a template for your own- go through the important
-files in your project and describe what they do. Each file that you edit
-(you can ignore your Alembic files) should get at least a paragraph. Each
-function should get a small blurb.
+Run "python lib/debug.py"
 
-You should descibe your actual CLI script first, and with a good level of
-detail. The rest should be ordered by importance to the user. (Probably
-functions next, then models.)
+Expected:
+All users, accounts, and passwords have been deleted.
 
-Screenshots and links to resources that you used throughout are also useful to
-users and collaborators, but a little more syntactically complicated. Only add
-these in if you're feeling comfortable with Markdown.
-
-***
-
-## Conclusion
-
-A lot of work goes into a good CLI, but it all relies on concepts that you've
-practiced quite a bit by now. Hopefully this template and guide will get you
-off to a good start with your Phase 3 Project.
-
-Happy coding!
-
-***
-
-## Resources
-
-- [Setting up a respository - Atlassian](https://www.atlassian.com/git/tutorials/setting-up-a-repository)
-- [Create a repo- GitHub Docs](https://docs.github.com/en/get-started/quickstart/create-a-repo)
-- [Markdown Cheat Sheet](https://www.markdownguide.org/cheat-sheet/)
+-RE-seed the data after deleting to be able to now create new users.
