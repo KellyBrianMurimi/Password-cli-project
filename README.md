@@ -99,26 +99,25 @@ User 'alice' created.
 python -m app.cli list-users
 Expected output:
 Users:
-- ID: 3 | alice (alice@example.com)
-- ID: 5 | victor (victor@example.com)
+- ID: 1 | kellybrian (kellybrianmurimi@gmail.com)
+- ID: 2 | alice (alice@example.com)
 
 3. List accounts for a user by user ID
-python -m app.cli list-accounts 3
+python -m app.cli list-accounts 2
 Expected output:
-Accounts for user ID 3:
-- Account ID: 7 | Example Account
-- Account ID: 8 | Another Account
+Accounts for alice:
+- ID: 1 | Site: alice | Username: alicegithub
 
 4. Add a password to an account (prompts securely)
-python -m app.cli add-password 7
+python -m app.cli add-password 1
 You will be prompted securely to enter a password or leave blank for auto-generation.
 
 5. Update a password for an account (prompts securely)
-python -m app.cli update-password 7
+python -m app.cli update-password 1
 You will be prompted securely to enter a new password or leave blank for auto-generation.
 
 6. Get decrypted password for an account
-python -m app.cli get-password 7
+python -m app.cli get-password 1
 Expected output:
 Decrypted password for account ID 7: mySecret123!
 
@@ -126,10 +125,10 @@ Decrypted password for account ID 7: mySecret123!
 python -m app.cli delete-account 7
 
 8. Delete a user by user ID (and their related accounts)
-python -m app.cli delete-user 3
+python -m app.cli delete-user 1
 
-9. Generate and add a strong password to an account (auto-generated/manually set)
-python -m app.cli generate-password 7
+9. Generate and add a strong password to an account (auto-generated)
+python -m app.cli generate-password 1
 
 10. Debug: Delete all users, accounts, and passwords (clear the database)
 
